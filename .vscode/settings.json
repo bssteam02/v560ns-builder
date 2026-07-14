@@ -1,0 +1,8 @@
+{
+    "github-actions.workflows.pinned.workflows": [
+        ".github/workflows/adhoc-build.yml"
+    ],
+    "cSpell.words": [
+        "passbolt"
+    ]
+}

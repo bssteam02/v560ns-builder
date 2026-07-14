@@ -1,0 +1,140 @@
+name: Reusable - iOS AdHoc Build
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      xcode_version:
+        required: true
+        type: string
+
+jobs:
+  ios-adhoc:
+    name: iOS AdHoc Build
+    environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.xcode_version == '26.3' && 'macos-26' || 'macos-15' }}
+    timeout-minutes: 60
+    steps:
+      - name: Set Xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ inputs.xcode_version }}
+
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+
+      - name: Create fastlane keychain
+        run: |
+          security create-keychain -p "" ${{ vars.KEYCHAIN_NAME }}
+          security default-keychain -s ${{ vars.KEYCHAIN_NAME }}
+
+      - name: Setup SSH for private repo
+        uses: ./.github/actions/setup-ssh
+        with:
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          private_host: ${{ secrets.PRIVATE_HOST }}
+
+      - name: Checkout real code
+        uses: ./.github/actions/checkout-private-repo
+        with:
+          branch: ${{ inputs.branch }}
+          private_repo_full_name: ${{ secrets.PRIVATE_REPO_FULL_NAME }}
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            real-code/node_modules
+            ~/.cache/yarn
+          key: yarn-${{ hashFiles('real-code/yarn.lock') }}
+          restore-keys: |
+            yarn-
+
+      - name: Install JS dependencies
+        shell: bash
+        run: yarn --cwd real-code install --silent
+
+      - name: Setup environment file
+        uses: ./.github/actions/setup-env
+        with:
+          environment: ${{ inputs.environment }}
+          passbolt_env_file: ${{ secrets.PASSBOLT_ENV_FILE }}
+          passbolt_private_key: ${{ secrets.PASSBOLT_PRIVATE_KEY }}
+
+      - name: Prepare mobile build
+        uses: ./.github/actions/prepare-mobile-build
+
+      - name: Restore Xcode compilation cache (CAS)
+        uses: actions/cache@v4
+        with:
+          # Xcode 26 compilation caching (LLVM CAS). Content-addressed (digest of the compilation's
+          # contents) → safe to share across branches: a changed input simply misses. Fixed shared
+          # path, survives `clean`. Enabled via COMPILATION_CACHE_ENABLE_CACHING=YES in the gym
+          # xcargs (Fastfile). Replaces ccache, which Xcode 26.3 ignored (CC override not honored).
+          # Verified: warm cache cut native compile ~21m -> ~6m. Rolling key keeps newest per Xcode ver.
+          path: ~/Library/Developer/Xcode/DerivedData/CompilationCache.noindex
+          key: xcode-compcache-${{ inputs.xcode_version }}-${{ github.run_id }}
+          restore-keys: |
+            xcode-compcache-${{ inputs.xcode_version }}-
+
+      - name: Cache CocoaPods downloads
+        uses: actions/cache@v4
+        with:
+          # Downloaded pod tarballs, addressed by pod + version → branch-safe. Keyed on Podfile.lock.
+          path: ~/Library/Caches/CocoaPods
+          key: cocoapods-${{ hashFiles('real-code/ios/Podfile.lock') }}
+          restore-keys: |
+            cocoapods-
+
+      - name: iOS Pod install
+        working-directory: real-code/ios
+        run: pod install --silent
+
+      - name: Build & AdHoc via Fastlane
+        working-directory: real-code/fastlane
+        env:
+          KEYCHAIN_NAME: ${{ vars.KEYCHAIN_NAME }}
+          KEYCHAIN_PWD: ""
+          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          DIAWI_API_TOKEN: ${{ secrets.DIAWI_API_TOKEN }}
+          GG_DRIVE_FOLDER_ID: ${{ vars.GG_DRIVE_FOLDER_ID }}
+          PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+          BUILD_BRANCH: ${{ inputs.branch }}
+          DRIVER_KEY_JSON: ${{ secrets.DRIVER_KEY_JSON }}
+          FASTLANE_DISABLE_UPDATE_CHECK: true
+        run: bundle exec fastlane ios adhoc env:${{ inputs.environment }}
+
+      - name: Compilation cache stats
+        if: always()
+        run: |
+          CAS="$HOME/Library/Developer/Xcode/DerivedData/CompilationCache.noindex"
+          if [ -d "$CAS" ]; then
+            du -sh "$CAS"; echo "files: $(find "$CAS" -type f 2>/dev/null | wc -l | tr -d ' ')"
+          else
+            echo "NO CompilationCache.noindex → compilation caching did not engage."
+          fi
+
+      - name: Upload Gym log as artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gym-log
+          path: "/Users/runner/Library/Logs/gym/App-TemoorstApp Development Release.log"
+
+      - name: Notify on failure
+        uses: ./.github/actions/notify-on-failure
+        if: failure()
+        with:
+          project_name: ${{ vars.PROJECT_NAME }}
+          webhook_url: ${{ secrets.NOTIFICATION_WEBHOOK_URL }}
+          job_name: ${{ github.job }}
+          branch: ${{ inputs.branch }}
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

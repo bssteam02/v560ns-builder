@@ -1,0 +1,31 @@
+name: Notify on Failure
+description: Notify on build Failure
+
+inputs:
+  project_name:
+    required: true
+    description: Push message to project group
+  webhook_url:
+    required: true
+    description: endpoint push message
+  job_name:
+    required: true
+    description: Job name
+  branch:
+    required: true
+    description: Build branch
+  run_url:
+    required: true
+    description: Run url
+
+runs:
+  using: composite
+  steps:
+    - name: Notify on Failure
+      shell: bash
+      run: |
+        ERROR_MSG='**:rotating_light: CI PANIC MODE: ENGAGED :rotating_light:**\nJob `${{ inputs.job_name }}` tripped on branch **`${{ inputs.branch }}`** and faceplanted :monkey_face::boom:\nSummoning @anhnh2_377 from the shadows!\nClick the link before someone calls you :scream::point_down:'
+        curl -X POST \
+          -H 'Content-Type: application/json' \
+          -d '{"project":"'"${{ inputs.project_name }}"'","message":"'"${ERROR_MSG}"'","status":999,"link":"'"${{ inputs.run_url }}"'"}' \
+          "${{ inputs.webhook_url }}"

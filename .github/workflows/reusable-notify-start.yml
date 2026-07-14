@@ -1,0 +1,22 @@
+name: Reusable - Notify Build Start
+
+on:
+  workflow_call:
+    inputs:
+      message:
+        required: true
+        type: string
+        description: "Notification message body"
+
+jobs:
+  notify-start:
+    name: Notify Build Start
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send starting notification
+        shell: bash
+        run: |
+          curl -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"project":"'"${{ vars.PROJECT_NAME }}"'","message":"'"${{ inputs.message }}"'","status":999,"link":""}' \
+            "${{ secrets.NOTIFICATION_WEBHOOK_URL }}"

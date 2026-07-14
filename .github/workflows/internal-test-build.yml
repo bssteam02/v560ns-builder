@@ -1,0 +1,39 @@
+name: Mobile Build Internal Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Build Branch"
+        required: true
+        default: "develop"
+      environment:
+        description: "Select environment (staging or live)"
+        required: true
+        default: "staging"
+      xcode_version:
+        description: "Xcode version (16.4 or 26.3)"
+        required: true
+        default: "16.4"
+
+jobs:
+  notify-start:
+    uses: ./.github/workflows/reusable-notify-start.yml
+    with:
+      message: "**[BUILD STARTED]**\\nStarting internal test build for branch **${{ github.event.inputs.branch }}**.\\nEnvironment: **${{ github.event.inputs.environment }}**.\\nPlease wait... :bicyclist: :man-biking: :woman-biking: :wind_blowing_face: "
+    secrets: inherit
+
+  ios-adhoc:
+    uses: ./.github/workflows/reusable-ios-adhoc.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      environment: ${{ github.event.inputs.environment }}
+      xcode_version: ${{ github.event.inputs.xcode_version }}
+    secrets: inherit
+
+  build-apk:
+    uses: ./.github/workflows/reusable-build-apk.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      environment: ${{ github.event.inputs.environment }}
+    secrets: inherit

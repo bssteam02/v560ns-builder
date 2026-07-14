@@ -1,0 +1,44 @@
+name: Setup environment file
+description: Generate environment files via Passbolt using yarn scripts
+
+inputs:
+  environment:
+    required: true
+    description: Target environment (staging or live)
+  passbolt_env_file:
+    required: true
+    description: Content of .env.passbolt file
+  passbolt_private_key:
+    required: true
+    description: Passbolt PGP private key content (ASCII armored)
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Passbolt credentials
+      shell: bash
+      working-directory: real-code
+      run: |
+        cat << 'EOF' > passbolt-bot-key.asc
+        ${{ inputs.passbolt_private_key }}
+        EOF
+        cat << 'EOF' > .env.passbolt
+        ${{ inputs.passbolt_env_file }}
+        EOF
+
+    - name: Setup environment file
+      shell: bash
+      working-directory: real-code
+      run: |
+        source .env.passbolt
+        if [[ "${{ inputs.environment }}" == "staging" ]]; then
+          npx tsx scripts/passbolt-env.ts staging
+        else
+          npx tsx scripts/passbolt-env.ts production
+        fi
+
+    - name: Cleanup Passbolt credentials
+      shell: bash
+      if: always()
+      working-directory: real-code
+      run: rm -f passbolt-bot-key.asc .env.passbolt

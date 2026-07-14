@@ -1,0 +1,19 @@
+name: Checkout private repo
+description: Clone private repository branch into real-code directory
+
+inputs:
+  branch:
+    required: true
+    description: Branch to checkout
+  private_repo_full_name:
+    required: true
+    description: Full SSH URL of the private repository
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout real code
+      shell: bash
+      run: |
+        git clone --branch ${{ inputs.branch }} --single-branch --depth 1 \
+          ${{ inputs.private_repo_full_name }} real-code

@@ -1,0 +1,25 @@
+name: Setup SSH for private repo
+description: Configure SSH access to private repository host
+
+inputs:
+  ssh_private_key:
+    required: true
+    description: SSH private key for accessing private repo
+  private_host:
+    required: true
+    description: Private repo host
+
+runs:
+  using: composite
+  steps:
+    - name: Setup SSH for private repo
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        cat << 'EOF' > ~/.ssh/id_rsa
+        ${{ inputs.ssh_private_key }}
+        EOF
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -p 2222 ${{ inputs.private_host }} >> ~/.ssh/known_hosts
+        printf "Host %s\n  HostName %s\n  Port 2222\n  IdentityFile ~/.ssh/id_rsa\n" \
+          "${{ inputs.private_host }}" "${{ inputs.private_host }}" > ~/.ssh/config

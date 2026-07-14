@@ -1,0 +1,26 @@
+name: Prepare mobile build
+description: Setup gem and fastlane
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Ruby & Fastlane
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "3.4.4"
+
+    - name: Cache Ruby gems
+      uses: actions/cache@v4
+      with:
+        path: real-code/fastlane/vendor/bundle
+        key: gem-cache-${{ hashFiles('real-code/fastlane/Gemfile.lock') }}
+        restore-keys: |
+          gem-cache-
+
+    - name: Install Bundler
+      shell: bash
+      working-directory: real-code/fastlane
+      run: |
+        gem install bundler
+        bundle config set path 'vendor/bundle'
+        bundle install --jobs 4 --retry 3

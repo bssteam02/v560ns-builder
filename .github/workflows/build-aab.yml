@@ -1,0 +1,27 @@
+name: Android Build AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Build Branch"
+        required: true
+        default: "develop"
+      environment:
+        description: "Select environment (staging or production)"
+        required: true
+        default: "production"
+
+jobs:
+  notify-start:
+    uses: ./.github/workflows/reusable-notify-start.yml
+    with:
+      message: "**[AAB BUILD STARTED]**\\nStarting AAB build for branch **${{ github.event.inputs.branch }}**.\\nEnvironment: **${{ github.event.inputs.environment }}**.\\nPlease wait... :bicyclist: :man-biking: :woman-biking: :wind_blowing_face:"
+    secrets: inherit
+
+  build-aab:
+    uses: ./.github/workflows/reusable-build-aab.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      environment: ${{ github.event.inputs.environment }}
+    secrets: inherit
