@@ -62,7 +62,7 @@ Builds iOS AdHoc **and** Android APK for internal testers.
 |-------|---------|-------|
 | `branch` | `develop` | Branch of the private source |
 | `environment` | `staging` | `staging` or `live` |
-| `xcode_version` | `16.4` | `16.4` or `26.3` |
+| `xcode_version` | `26.6` | `26.6` or `26.3` |
 
 Jobs: `notify-start` ‖ `ios-adhoc` ‖ `build-apk`
 
@@ -73,7 +73,7 @@ Builds iOS and uploads to App Store Connect / TestFlight.
 |-------|---------|-------|
 | `branch` | `develop` | Branch of the private source |
 | `environment` | `staging` | `staging` or `live` |
-| `xcode_version` | `16.4` | `16.4` or `26.3` |
+| `xcode_version` | `26.6` | `26.6` or `26.3` |
 
 Jobs: `notify-start` ‖ `ios-testflight`
 

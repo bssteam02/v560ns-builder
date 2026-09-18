@@ -12,9 +12,9 @@ on:
         required: true
         default: "staging"
       xcode_version:
-        description: "Xcode version (16.4 or 26.3)"
+        description: "Xcode version (26.6 or 26.3)"
         required: true
-        default: "16.4"
+        default: "26.6"
 
 jobs:
   notify-start:
