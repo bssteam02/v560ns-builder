@@ -35,6 +35,7 @@ jobs:
         working-directory: real-code/android/app
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > thelook.jks
+          echo "${{ secrets.ANDROID_STG_KEYSTORE_BASE64 }}" | base64 --decode > thelook_stg.jks
 
       - name: Install JS dependencies
         shell: bash
@@ -84,9 +85,13 @@ jobs:
           BUILD_BRANCH: ${{ inputs.branch }}
           DRIVER_KEY_JSON: ${{ secrets.DRIVER_KEY_JSON }}
           MYAPP_UPLOAD_STORE_FILE: ${{ github.workspace }}/real-code/android/app/thelook.jks
+          STAGING_UPLOAD_STORE_FILE: ${{ github.workspace }}/real-code/android/app/thelook_stg.jks
           MYAPP_UPLOAD_KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}
+          STAGING_UPLOAD_KEY_ALIAS: ${{ secrets.STAGING_UPLOAD_KEY_ALIAS }}
           MYAPP_UPLOAD_STORE_PASSWORD: ${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}
+          STAGING_UPLOAD_STORE_PASSWORD: ${{ secrets.STAGING_UPLOAD_STORE_PASSWORD }}
           MYAPP_UPLOAD_KEY_PASSWORD: ${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}
+          STAGING_UPLOAD_KEY_PASSWORD: ${{ secrets.STAGING_UPLOAD_KEY_PASSWORD }}
           FASTLANE_DISABLE_UPDATE_CHECK: true
         run: bundle exec fastlane android apk env:${{ inputs.environment }}
 
