@@ -11,7 +11,7 @@ on:
 jobs:
   notify-start:
     name: Notify Build Start
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Send starting notification
         shell: bash
